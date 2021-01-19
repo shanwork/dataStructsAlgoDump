@@ -1,0 +1,214 @@
+<html>
+    <head>
+        <title>Vue tutorial</title>
+        <style>
+            table {
+                max-width: 500px;
+                min-width: 300px;
+            }
+            tr {
+                max-width: 300px;
+            }
+            td {
+                background-color: beige;
+                width: 120px;
+            }
+            li {
+                width: 40px;
+                text-align: right;
+                padding-right: 5px;
+                border:1px inset yellow;
+                margin: 1px 5px 1px -10px;
+            }
+            .zipMainClass {
+                background-color:#bbbb96;
+                padding-right: 15px;
+            }
+            .nextToMain {
+                background-color: orange ;
+                border-bottom: 1px solid brown;
+                
+                padding-right: 15px;
+                padding-bottom: 5px;
+            }
+            .nextInMain {
+                background-color: chocolate;
+                border-bottom: 1px solid brown;
+                padding: 3px 15px 0 0px;
+                color:lightgoldenrodyellow;
+            }
+        </style>
+        <script src='./scripts/Queue.js'></script>
+
+        <script src='./scripts/ZipQueue.js'></script>
+        <script src='./scripts/zipQProto1.js'> </script>
+    </head>
+    <body onload="dispQ();">
+        <div id="app">
+            <input type="button" value="Process Element"  onclick="startProcessZipQueue()" /><!-- onclick="processZipQueue()" />-->
+            <input type="button" value="Add Element"  onclick="addToZipQueue()" />
+            <table id="dumpDiv" >
+
+            </table>
+          
+            <input type="text" id="nm">
+            <input type="button" value="Push"  onclick="push(786)" />
+
+            <input type="button" value="Pop"  onclick="pop()" />
+        </div>
+        <script>
+           var ul = document.getElementById("queue");
+           var zqT = document.getElementById("zipQueueTable");
+           var zipRootUI  = document.getElementById("dumpDiv");
+           var dumQ  = document.getElementById("dumpDiv2");
+            var myTestQueue = new Queue([1,2,3,4,5,6,8,10], 15);
+            let zipList = [1,2]
+            for (let k=3; k <= 150;k++) {
+                zipList.push(k);
+            }
+           console.log(JSON.stringify(zipList));
+           var bulkQueue = new ZipQueue(zipList, 6, 10,15);
+           var k = null ;
+           var zipQ1 = new ZipQProto1(bulkQueue, dumQ)
+           function startProcessZipQueue() {
+            k = window.setInterval(processZipQueue, 500);
+           }
+           bulkQueue.display(zqT,'tr','td');
+           function dispQ() {
+               alert('');
+                // myTestQueue.displayContinuous(ul,"td") ; //.display(ul,"td", true);
+                zipQ1.showDumpQState() ;
+
+           }
+           function showDumpQState() {
+                let dumpDivInner = '';
+                
+                const QData = bulkQueue.getZipQueueContent() ;
+                if (dumQ) {
+                    populateMain(QData) ;
+                    populateSubQueues(QData);
+                }
+           }
+           function populateMain(QData) {
+                if(QData.mainQueueElements.list.length === 0) {
+                    if (k) {
+                        window.clearInterval(k);
+                        alert('queue is empty');
+                    }
+                }
+                    let zipQueueRow = document.getElementById('zipQRow');
+                    if (!zipQueueRow) {
+                        zipQueueRow = document.createElement('tr');
+                        zipQueueRow.setAttribute('id','zipQRow');
+                        dumQ.appendChild(zipQueueRow);
+                    }
+                    if (QData.mainQueueElements && QData.mainQueueElements.list) {
+                        populateCellAndList(zipQueueRow, `zipQMainCell`, `zipQMainCellList`, QData.mainQueueElements.list, QData.mainQueueLength) ;
+                        for (let i = 0 ; i < QData.mainQueueLength; i++) {
+                            let mainQueueULCell = document.getElementById(`zipQMainCellListItem${i}`);
+                            if (mainQueueULCell) {
+                                if (i === 0 ) {
+                                    mainQueueULCell.setAttribute('class',`nextInMain`);
+                                } else {
+                                    mainQueueULCell.setAttribute('class','zipMainClass');
+                                }
+                            }
+                        }
+                        return ;
+                    }
+           }
+               
+           function populateSubQueues(QData) {
+            let zipQueueRow = document.getElementById('zipQRow');
+            if (!zipQueueRow) {
+                zipQueueRow = document.createElement('tr');
+                        zipQueueRow.setAttribute('id','zipQRow');
+                        dumQ.appendChild(zipQueueRow);
+            }
+            let zipSubQSpace = document.getElementById('zipSubQSpaceCell');
+            if(!zipSubQSpace){
+                zipSubQSpace = document.createElement('td');
+                zipSubQSpace.setAttribute('id','zipSubQSpaceCell');
+                zipQueueRow.appendChild(zipSubQSpace);
+            }
+            // zipSubQSpace.innerText = 'HAHAHH';
+            let subQIndex = 0 ;
+            while (subQIndex < QData.numberSubQueues) {
+                if(QData.subQueueElements[subQIndex] ) {
+                    populateCellAndList(zipQueueRow, `zipSubQ${subQIndex}Cell`, `zipSubQ${subQIndex}List`, QData.subQueueElements[subQIndex].list, QData.subQueueLength) ;
+                }
+                subQIndex++;
+                // f QData.sub
+            }
+            return ;
+        }
+        function populateBulk(QData, originalLength ) {
+            if (QData.bulkQContent && originalLength > 0) {
+
+            }
+
+        } 
+        function populateCellAndList(zipQRow, cellName, listName, dataList, maxListLength) {
+            let cellElement = document.getElementById(cellName);
+            if (!cellElement) {
+               cellElement = document.createElement('td');
+               cellElement.setAttribute('id',cellName);
+               zipQRow.appendChild(cellElement);
+            }
+            let ulElement = document.getElementById(listName);
+            if (!ulElement) {
+                ulElement  = document.createElement('ul');
+                ulElement.setAttribute('id',listName);
+                cellElement.appendChild(ulElement);
+            }
+            dataList.forEach((dataContent, index) => {
+                let liElement = document.getElementById(`${listName}Item${index}`);
+                if (!liElement) {
+                  liElement = document.createElement('li');
+                  liElement.setAttribute('id',`${listName}Item${index}`);
+                  if(index === 0) {
+                    liElement.setAttribute('class',`nextToMain`);
+                  }
+                  ulElement.appendChild(liElement);
+                }
+                liElement.innerHTML = dataContent ;
+            });
+            if(dataList.length < maxListLength) {
+               let iX = dataList.length ;
+               while (iX < maxListLength){
+                  let liXElement = document.getElementById(`${listName}Item${iX}`);
+                  if (!liXElement) {
+                    liXElement = document.createElement('li');
+                    liXElement.setAttribute('id',`${listName}Item${iX}`);
+                    liXElement.appendChild(liXElement);
+                  }
+                  liXElement.innerHTML = ' - ' ;
+                  iX++;    
+               }
+
+            }
+        }
+           function processZipQueue()  {
+             bulkQueue.processQueue(zqT,'tr','td');
+             showDumpQState();
+           }
+           function addToZipQueue() {
+             bulkQueue.addQueue(zqT,'tr','td',2);
+           }
+           function push(num) {
+            let pushContainer = document.getElementById('nm');
+            let num2 = Math.round(Math.random() * 10);
+            if (pushContainer) {
+                num2 = parseInt(pushContainer.value);
+            }
+            myTestQueue.enqueue(num2,ul,"td",num2);
+            // myTestQueue.display (ul,"td",num2);
+           }
+           function pop() {
+            const a = myTestQueue.dequeue(ul,"td") ;
+            // myTestQueue.displayContinuous(ul,"td") ;
+            // myTestQueue.display (ul,"td",false, null,1);
+           }
+        </script>
+    </body>
+</html>

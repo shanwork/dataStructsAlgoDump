@@ -1,0 +1,329 @@
+<html>
+    <head>
+        <title>Vue tutorial</title>
+        <style>
+            table {
+                max-width: 500px;
+                min-width: 300px;
+            }
+            tr {
+                max-width: 300px;
+            }
+            td {
+                background-color:#dddd96;
+                width: 120px;
+            }
+            li {
+                min-width: 40px;
+                text-align: right;
+                padding-right: 5px;
+                background-color: #eeeea0;
+                border:1px inset yellow;
+                margin: 1px 5px 1px -10px;
+            }
+            .zipMainClass {
+                background-color:beige;
+                padding-right: 15px;
+            }
+            .nextToMain {
+                background-color: orange ;
+                border-bottom: 1px solid brown;
+                
+                padding-right: 15px;
+                padding-bottom: 5px;
+            }
+            .nextInMain {
+                background-color: chocolate;
+                border-bottom: 1px solid brown;
+                padding: 3px 15px 0 0px;
+                color:lightgoldenrodyellow;
+            }
+            .zipBulkCellClass {
+                background-color:lightblue;
+                min-width:500px;
+                padding-right: 15px;
+            }
+            .bulk-li {
+                text-align: left;
+                border:1px outset gray;
+                background-color: silver;
+            }
+            
+        </style>
+        <script src='./scripts/Queue.js'></script>
+
+        <script src='./scripts/ZipQueue.js'></script>
+        <script src='./scripts/zipQProto1.js'> </script>
+    </head>
+    <body onload="dispQ();">
+        <div id="app">
+            <table>
+                <tr id="queue"></tr>
+            </table>
+            <input type="button" value="Auto Process Existing Queue"  onclick="startProcessZipQueue()" /><!-- onclick="processZipQueue()" />-->
+            <input type="button" value="Pause Auto Process"  onclick="stopProcessZipQueue()" /><!-- onclick="processZipQueue()" />-->
+            <input type="button" value="Process Queue, single element"  onclick="processZipQueue()" /><!-- onclick="processZipQueue()" />-->
+            <input type="text" value="2" id='newElement'>
+            <input type="button" value="Add Element"  onclick="addToZipQueue()" />
+            refill queue: number of elements
+            <input type="text"  value="2" id='refillSize'>
+            <input type="button" value="Refill"  onclick="refillZipQueue()" />
+            
+            <table id="dumpDiv" >
+
+            </table>
+            <table id='zipQueueTable' border="1">
+
+            </table>
+            <input type="text" id="nm">
+            <input type="button" value="Push"  onclick="push(786)" />
+
+            <input type="button" value="Pop"  onclick="pop()" />
+        </div>
+        <script>
+           var k = null, refillSize = -1, refillIndex = -1, refillThread = null  ;
+           function startProcessZipQueue() {
+            k = window.setInterval(processZipQueue, 500);
+           }
+           function refillZipQueue() {
+            refillSize = parseInt((document.getElementById('refillSize')).value) ;
+            refillIndex = 1;
+            refillThread= window.setInterval(addToZipQueue, 500);
+           }
+           function stopProcessZipQueue() {
+             if(k) {
+                 window.clearInterval(k);
+                 k = null ;
+             }
+           }
+           function processZipQueue()  {
+             bulkQueue.processQueue(zqT,'tr','td');
+             showDumpQState();
+           }
+           function addToZipQueue() {
+             const newL = refillIndex > -1 ? refillIndex : (document.getElementById('newElement')).value ;
+             bulkQueue.addQueue(zqT,'tr','td',newL);
+             if (refillIndex !== -1) {
+                refillIndex++ ;
+                if (refillIndex === refillSize+1) {
+                    window.clearInterval(refillThread);
+                    refillIndex = -1;
+                    refillSize = -1 ;
+                }
+             }
+             showDumpQState();
+           }
+           var ul = document.getElementById("queue");
+           var zqT = document.getElementById("zipQueueTable");
+           var dumQ  = document.getElementById("dumpDiv");
+            var myTestQueue = new Queue([1,2,3,4,5,6,8,10], 15);
+            let zipList = [1,2]
+            for (let k=3; k <= 110;k++) {
+                zipList.push(k);
+            }
+           console.log(JSON.stringify(zipList));
+           var bulkQueue = new ZipQueue(zipList, 6, 10,15);
+           bulkQueue.display(zqT,'tr','td');
+           function dispQ() {
+                myTestQueue.displayContinuous(ul,"td") ; //.display(ul,"td", true);
+                showDumpQState() ;
+
+           }
+           function showDumpQState() {
+                let dumpDivInner = '';
+                
+                const QData = bulkQueue.getZipQueueContent() ;
+                if (dumQ) {
+                    populateMain(QData) ;
+                    populateSubQueues(QData);
+                    populateBulk(QData);
+                }
+           }
+           function populateMain(QData) {
+                if(QData.mainQueueElements.list.length === 0) {
+                    if (k) {
+                        window.clearInterval(k);
+                        alert('queue is empty');
+                    }
+                }
+                    let zipQueueRow = document.getElementById('zipQRow');
+                    if (!zipQueueRow) {
+                        zipQueueRow = document.createElement('tr');
+                        zipQueueRow.setAttribute('id','zipQRow');
+                        dumQ.appendChild(zipQueueRow);
+                    }
+                    if (QData.mainQueueElements && QData.mainQueueElements.list) {
+                        populateCellAndList(zipQueueRow, `zipQMainCell`, `zipQMainCellList`, QData.mainQueueElements.list, QData.mainQueueLength) ;
+                        for (let i = 0 ; i < QData.mainQueueLength; i++) {
+                            let mainQueueULCell = document.getElementById(`zipQMainCellListItem${i}`);
+                            if (mainQueueULCell) {
+                                if (i === QData.mainQueueLength-1 ) {
+                                    mainQueueULCell.setAttribute('class',`nextInMain`);
+                                    const lastMainOverride ='background-color: chocolate;border-bottom: 1px solid brown;color:lightgoldenrodyellow;'
+                                    mainQueueULCell.setAttribute('style',lastMainOverride);
+                                    /*
+                                    background-color: chocolate;
+                border-bottom: 1px solid brown;
+                padding: 3px 15px 0 0px;
+                color:lightgoldenrodyellow;
+                                      liElement.setAttribute("style", 
+                    `background-color:rgb(${bcRgbA}); color:rgb(${cRgba});`); // color:rgb(${cRgbA});`) ; //${parseInt(255 / parseInt(dataContent))},${parseInt(255 % parseInt(dataContent)) }, ${255 - parseInt(dataContent)};`);
+                
+                                    */
+                                } else {
+                                    mainQueueULCell.setAttribute('class','zipMainClass');
+                                }
+                            }
+                        }
+                        return ;
+                    }
+           }
+               
+           function populateSubQueues(QData) {
+            let zipQueueRow = document.getElementById('zipQRow');
+            if (!zipQueueRow) {
+                zipQueueRow = document.createElement('tr');
+                        zipQueueRow.setAttribute('id','zipQRow');
+                        dumQ.appendChild(zipQueueRow);
+            }
+            let zipSubQSpace = document.getElementById('zipSubQSpaceCell');
+            if(!zipSubQSpace){
+                zipSubQSpace = document.createElement('td');
+                zipSubQSpace.setAttribute('id','zipSubQSpaceCell');
+                zipQueueRow.appendChild(zipSubQSpace);
+            }
+            // zipSubQSpace.innerText = 'HAHAHH';
+            let subQIndex = 0 ;
+            const overrideStyle = {styleStr: 'background-color: chocolate;border-bottom: 1px solid brown;color:lightgoldenrodyellow;', index:0}
+            while (subQIndex < QData.numberSubQueues) {
+                if(QData.subQueueElements[subQIndex] ) {
+                    populateCellAndList(zipQueueRow, `zipSubQ${subQIndex}Cell`, `zipSubQ${subQIndex}List`, 
+                        QData.subQueueElements[subQIndex].list, QData.subQueueLength, overrideStyle) ;
+                }
+                subQIndex++;
+                // f QData.sub
+            }
+            return ;
+        }
+        function populateBulk(QData, originalLength ) {
+            let zipQueueRow = document.getElementById('zipQRow');
+                    if (!zipQueueRow) {
+                        zipQueueRow = document.createElement('tr');
+                        zipQueueRow.setAttribute('id','zipQRow');
+                        dumQ.appendChild(zipQueueRow);
+                    }
+                    if (QData.bulkQContent ) {
+                let zipSubQSpace = document.getElementById('zipBulkCell');
+            if(!zipSubQSpace){
+                zipSubQSpace = document.createElement('td');
+                zipSubQSpace.setAttribute('id','zipBulkCell');
+                zipSubQSpace.setAttribute('class','zipBulkCellClass');
+                zipQueueRow.appendChild(zipSubQSpace);
+            }
+            let bulkDump = `<ul><li class='bulk-li'>`;
+            QData.bulkQContent.list.forEach((item, index) => {
+                if (index > 0 && index % 10 === 0) {
+                    bulkDump = `${bulkDump}</li><li class='bulk-li'>`;
+                } 
+                
+                bulkDump = `${bulkDump},${item}`;
+            });
+            zipSubQSpace.innerHTML = bulkDump ;// JSON.stringify(QData.bulkQContent);
+            }
+
+        } 
+        function populateCellAndList(zipQRow, cellName, listName, dataList, maxListLength, overrideStyle = null ) {
+            let cellElement = document.getElementById(cellName);
+            if (!cellElement) {
+               cellElement = document.createElement('td');
+               cellElement.setAttribute('id',cellName);
+               zipQRow.appendChild(cellElement);
+            }
+            let ulElement = document.getElementById(listName);
+            if (!ulElement) {
+                ulElement  = document.createElement('ul');
+                ulElement.setAttribute('id',listName);
+                cellElement.appendChild(ulElement);
+            }
+            dataList.forEach((dataContent, index) => {
+                let liElement = document.getElementById(`${listName}Item${index}`);
+                if (!liElement) {
+                  liElement = document.createElement('li');
+                  liElement.setAttribute('id',`${listName}Item${index}`);
+                  if(index === 0) {
+                    liElement.setAttribute('class',`nextToMain`);
+                  }
+                  ulElement.appendChild(liElement);
+                }
+                const dataContentN = parseInt(dataContent) ;
+                let bcRgbA= 'aliceblue';
+                let cRgba='white';
+                if (overrideStyle !== null && overrideStyle.index === index) {
+                    liElement.setAttribute("style", overrideStyle.styleStr) ;
+                } else {
+                    if(dataContent % 8 === 0) {
+                        bcRgbA = '105, 105,145';
+                        cRgba = '225,255,255';
+                    } else if (dataContent % 7 === 0) {
+                        bcRgbA = '105,105,85';
+                        cRgba = '255,255,205';
+                    } else if (dataContent % 6 === 0) {
+                        bcRgbA = '105,75,105';
+                        cRgba = '255,255,85';
+                    } else if (dataContent % 5 === 0) {
+                        bcRgbA = '175,75,105';
+                        cRgba = '185,255,45';
+                    } else if (dataContent % 4 === 0) {
+                        bcRgbA = '175,175,25';
+                        cRgba = '15,15,85';
+                    } else if (dataContent % 3 === 0) {
+                        bcRgbA = '75,175,225';
+                        cRgba = '215,255,185';
+                    } else if (dataContent % 2 === 0) {
+                        bcRgbA = '225,175,225';
+                        cRgba = '255,55,25';
+                    } else   {
+                        bcRgbA = '127,145,185';
+                        cRgba = '3,55,55';
+                    }
+
+                  liElement.setAttribute("style", 
+                    `background-color:rgb(${bcRgbA}); color:rgb(${cRgba});`); // color:rgb(${cRgbA});`) ; //${parseInt(255 / parseInt(dataContent))},${parseInt(255 % parseInt(dataContent)) }, ${255 - parseInt(dataContent)};`);
+                }
+                liElement.innerHTML = dataContent ;
+            });
+            if(dataList.length < maxListLength) {
+               let iX = dataList.length ;
+               while (iX < maxListLength){
+                  let liXElement = document.getElementById(`${listName}Item${iX}`);
+                  if (!liXElement) {
+                    liXElement = document.createElement('li');
+                    liXElement.setAttribute('id',`${listName}Item${iX}`);
+                    liXElement.appendChild(liXElement);
+                  }
+                  liXElement.setAttribute("style", 
+                    `background-color:#dadada; color:white;`); 
+                  liXElement.innerHTML = '-  ' ;
+                  iX++;    
+               }
+
+            }
+        }
+          
+           function push(num) {
+            let pushContainer = document.getElementById('nm');
+            let num2 = Math.round(Math.random() * 10);
+            if (pushContainer) {
+                num2 = parseInt(pushContainer.value);
+            }
+            myTestQueue.enqueue(num2,ul,"td",num2);
+            // myTestQueue.display (ul,"td",num2);
+           }
+           function pop() {
+            const a = myTestQueue.dequeue(ul,"td") ;
+            // myTestQueue.displayContinuous(ul,"td") ;
+            // myTestQueue.display (ul,"td",false, null,1);
+           }
+        </script>
+    </body>
+</html>
